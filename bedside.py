@@ -40,7 +40,7 @@ def time():
     clockLbl.after(30000, time)
 
 def weatherCheck():
-   apiKey="87d9c1f70baadbf966ad1599ee87d5d0"
+   apiKey="yourKeyHere"
    apiURL="https://api.openweathermap.org/data/2.5/weather?lat=52.33&lon=-0.179&units=metric&appid="+apiKey
    response = requests.get(apiURL)
    data = response.json()
