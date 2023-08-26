@@ -36,9 +36,9 @@ class RndWebContent:
             self.webLbl.configure(image="")
         elif contentChoice == 3:
             # rndResult=self.threeDayBeebForcast()
-            #rndResult=self.getRSSContent("https://weather-broker-cdn.api.bbci.co.uk/en/forecast/rss/3day/2646393", 3)
+            rndResult=self.getRSSContent("https://weather-broker-cdn.api.bbci.co.uk/en/forecast/rss/3day/sixDigitCodeForYourTownHere", 3)
             self.webLbl.configure(text=rndResult)
-            self.title.configure(text="BBC 3 Day Weather for Huntingdon")
+            self.title.configure(text="BBC 3 Day Weather for Wherever")
             self.webLbl.configure(image="")
         elif contentChoice == 4:
             self.getNasaIOD()
