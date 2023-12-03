@@ -1,9 +1,13 @@
 import requests
 import tkinter as tk
 import customtkinter as ctk
+import logging
+import datetime
+import time
 
-APIKEY = 'yourKeyHere'
-URL = 'http://yourHueHubAddressHere'
+APIKEY = 'goes here'
+URL = 'http://192.168.0.4/api/'
+logger = logging.getLogger(__name__)
 
 
 class HueLight:
@@ -14,28 +18,26 @@ class HueLight:
         self.btn = ctk.CTkButton(window, text = friendlyName, font=("Callibri", 20), command = lambda: self.toggleLight(), width=140, height=60)
 
     def toggleLight(self):
-        switchPosn = self.bulbState()
-        #print("switch pos is ", switchPosn)
+        #logger.info("toggleLight")
+        isSwitchedOn = self.bulbState()
+        #logger.info("isSwitchedOn: ", isSwitchedOn)
         url= self.buildURL("switch")
-        if switchPosn == "True":
-            #on now so swtich off:
-            #print("***** on so now off....!!!")
+        if isSwitchedOn == "True":
             body = "{\"on\":false}"
             response = requests.put(url, data=body)
             self.btn.configure(fg_color="firebrick3")
-            #self.btn.configure(bg_color="firebrick3")
             self.btn.configure(hover_color="firebrick3")
-        elif switchPosn == "False":
+        elif isSwitchedOn == "False":
             # off so switch on:
             body = "{\"on\":true}"
             response = requests.put(url, data=body)
             self.btn.configure(fg_color="DarkOliveGreen3")
             #self.btn.configure(bg_color="DarkOliveGreen3")
             self.btn.configure(hover_color="DarkOliveGreen3")
-        elif switchPosn ==  "Unavailable":
+        elif isSwitchedOn ==  "Unavailable":
             # could do something more informative here...
             #print("Unavailable")
-            self.btn.configure(fg_color="black")
+            self.btn.configure(fg_color="gray20")
             #self.btn.configure(hover_color="transparent")
 
     def convertBulbNum(self):
@@ -62,31 +64,52 @@ class HueLight:
     def bulbState(self):
         url= self.buildURL("checkState")
         response = requests.get(url)
-        jsonData = response.json()
-        #print(jsonData)
+        try:
+            jsonData = response.json()
+        except:
+            logger.info("Endpoint didn't return valid json")
+            logger.info(response)
+            hubResponseForLight = "unavailable"
+            return hubResponseForLight
+        hubResponseForLight = ""
+        #logger.info(jsonData)
         try:
             # weird: the json value is prefixed with a space...
             isSwitchedOn = str(jsonData['state']['on']).strip()
+            isReachable = str(jsonData['state']['reachable']).strip()
+            #logger.info(self.friendlyName+": isSwitchedOn: "+isSwitchedOn+"; isReachable: "+isReachable)
+            if isSwitchedOn == "True" and isReachable == "True":
+                hubResponseForLight = "True"
+            elif isSwitchedOn == "False" and isReachable == "True":
+                hubResponseForLight = "False"
+            # this takes about 30 seconds to filter through:
+            elif isReachable == "False":
+                hubResponseForLight = "Unavailable"
+            else: 
+                logger.info("bulbState json had unexpected values: \n"+ jsonData)
         except:
-            isSwitchedOn = "Unavailable"
-        #print("in bulbState for ", self.friendlyName, " and bulb on is ", isSwitchedOn)
-        return isSwitchedOn
+            # network failure. probably true :)
+            logger.info("try / catch for bulbState has failed")
+            logger.info("isSwitchedOn: ", isSwitchedOn, "; isReachable: ", isReachable)
+            hubResponseForLight = "Unavailable"
+        return hubResponseForLight
 
     def checkCurrentLightsState(self):
-        switchPosn = self.bulbState()
-        print(self.friendlyName, "switch is ", switchPosn)
-        if switchPosn == "True":
-            #print("on")
+        isSwitchedOn = self.bulbState()
+        now = datetime.datetime.now()
+        # This is to get an hourly sample of data:
+        if now.minute == 45 and now.second > 30:
+            # this will get a sample of data on the part that's failing. if it's time based, it may affect the results...
+            logMsg = self.friendlyName + " switch is " + str(isSwitchedOn)
+            logger.info(logMsg)
+        if isSwitchedOn == "True":
             self.btn.configure(fg_color="DarkOliveGreen3")
             self.btn.configure(bg_color="DarkOliveGreen3")
-            #light.btn.configure(hover_color="transparent")
-        elif switchPosn == "False":
-            #print("off")
+        elif isSwitchedOn == "False":
             self.btn.configure(fg_color="firebrick3")
             self.btn.configure(fg_color="firebrick3")
-            #light.btn.configure(hover_color="transparent")
-        elif switchPosn == "Unavailable":
-            #print("Unavailable")
-            self.btn.configure(fg_color="black")
-            #light.btn.configure(hover_color="transparent")
+        elif isSwitchedOn == "Unavailable":
+            self.btn.configure(fg_color="gray20")
+            self.btn.configure(bg_color="gray20")
         self.btn.after(10000, self.checkCurrentLightsState)
+
