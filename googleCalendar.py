@@ -7,7 +7,9 @@ from googleapiclient.errors import HttpError
 class GoogleCalendar:
 	def __init__(self):
 		key_file = 'calendarprojectPrivKey.json'
-		scope = ("https://www.googleapis.com/auth/calendar.readonly",)
+		# this now has to be defined as a single element in an array:
+		# scope = ("https://www.googleapis.com/auth/calendar.readonly",)
+		scope = ["https://www.googleapis.com/auth/calendar.readonly"]
 		self.creds = service_account.Credentials.from_service_account_file('calendarprojectPrivKey.json', scopes=scope)
 
 	def getEvents(self):
