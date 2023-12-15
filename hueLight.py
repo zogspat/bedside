@@ -3,22 +3,23 @@ import tkinter as tk
 import customtkinter as ctk
 import logging
 import datetime
-import time
+import sys
 
-APIKEY = 'goes here'
+APIKEY = 'your key here'
 URL = 'http://192.168.0.4/api/'
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 class HueLight:
     def __init__(self, friendlyName, window):
+        logger.info("huey init: "+friendlyName)
         self.friendlyName = friendlyName
         self.bulbNum = self.convertBulbNum()
         self.friendlyName = friendlyName
         self.btn = ctk.CTkButton(window, text = friendlyName, font=("Callibri", 20), command = lambda: self.toggleLight(), width=140, height=60)
 
     def toggleLight(self):
-        #logger.info("toggleLight")
+        logger.info("toggleLight")
         isSwitchedOn = self.bulbState()
         #logger.info("isSwitchedOn: ", isSwitchedOn)
         url= self.buildURL("switch")
@@ -63,15 +64,21 @@ class HueLight:
 
     def bulbState(self):
         url= self.buildURL("checkState")
-        response = requests.get(url)
+        # this has evolved; could do with a tidy up:
+        try:
+            response = requests.get(url)
+        except:
+            # response = "connection failure"
+            logger.info("bulb state hub connection failure")
+            hubResponseForLight = "Unavailable"
+            return hubResponseForLight
+        #if response != "connection failure":
         try:
             jsonData = response.json()
         except:
-            logger.info("Endpoint didn't return valid json")
-            logger.info(response)
-            hubResponseForLight = "unavailable"
+            logger.info("bulb state json parsing failure")
+            hubResponseForLight = "Unavailable"
             return hubResponseForLight
-        hubResponseForLight = ""
         #logger.info(jsonData)
         try:
             # weird: the json value is prefixed with a space...
@@ -87,6 +94,7 @@ class HueLight:
                 hubResponseForLight = "Unavailable"
             else: 
                 logger.info("bulbState json had unexpected values: \n"+ jsonData)
+                #print("also sad face")
         except:
             # network failure. probably true :)
             logger.info("try / catch for bulbState has failed")
@@ -96,11 +104,12 @@ class HueLight:
 
     def checkCurrentLightsState(self):
         isSwitchedOn = self.bulbState()
+        logMsg = self.friendlyName + " switch is " + str(isSwitchedOn)
+        #logger.info(logMsg)
         now = datetime.datetime.now()
-        # This is to get an hourly sample of data:
-        if now.minute == 45 and now.second > 30:
-            # this will get a sample of data on the part that's failing. if it's time based, it may affect the results...
-            logMsg = self.friendlyName + " switch is " + str(isSwitchedOn)
+        # This is to get a half hourly sample of data:
+        if now.minute == 45 or now.minute == 15:
+            logMsg = str(now) + " " + self.friendlyName + " switch is " + str(isSwitchedOn) + "; ref count for self: " + str(sys.getrefcount(self))
             logger.info(logMsg)
         if isSwitchedOn == "True":
             self.btn.configure(fg_color="DarkOliveGreen3")
@@ -111,5 +120,4 @@ class HueLight:
         elif isSwitchedOn == "Unavailable":
             self.btn.configure(fg_color="gray20")
             self.btn.configure(bg_color="gray20")
-        self.btn.after(10000, self.checkCurrentLightsState)
-
+        self.btn.after(15000, self.checkCurrentLightsState)
