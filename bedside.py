@@ -1,7 +1,5 @@
 from hueLight import HueLight
-import tkinter as tk
 import customtkinter as ctk
-from time import strftime
 import time
 import requests
 from rndWebContent import RndWebContent
@@ -9,15 +7,11 @@ from PIL import Image
 # for some reaon this isn't working:
 # from rpi_backlight import Backlight
 import logging
-logging.basicConfig(filename="/home/zog/bedside/log.txt",
-                    format='%(asctime)s %(message)s',
-                    filemode='w')
-logger = logging.getLogger(__name__)
-
-logger.setLevel(logging.INFO)
-logger.info("starting...")
-
 import os
+
+#logger = logging.getLogger(__name__)
+logging.basicConfig(filename='/home/zog/bedside/bedside.log', level=logging.INFO)
+logging.info("logging.info: In bedside.py")
 
 window = ctk.CTk()
 window.attributes('-fullscreen', True)
@@ -46,10 +40,9 @@ def placeLightControlBtns():
     landingLight.btn.place(x=485, y=410)
     diningRoomLight.btn.place(x=640, y=410)
 
-def time():
-    #logger.info("in da time...")
-    dateTimeDisplayString = strftime('%d/%m    %H:%M %p')
-    timeCheckString = strftime("%H:%M")
+def checkTime():
+    dateTimeDisplayString = time.strftime('%d/%m    %H:%M %p')
+    timeCheckString = time.strftime("%H:%M")
     #logger.info(timeCheckString)
     if timeCheckString == "22:00":
         #logger.info("it's 10pm")
@@ -65,12 +58,12 @@ def time():
     #else:
     #    logger.info("none of the above")
     clockLbl.configure(text=dateTimeDisplayString)
-    clockLbl.after(30000, time)
+    clockLbl.after(30000, checkTime)
     #clockLbl.after(10000, time)
 
 
 def weatherCheck():
-   apiKey="goes here"
+   apiKey="your key here"
    apiURL="https://api.openweathermap.org/data/2.5/weather?lat=52.33&lon=-0.179&units=metric&appid="+apiKey
    response = requests.get(apiURL)
    data = response.json()
@@ -98,13 +91,16 @@ def weatherCheck():
 
 def main():
     ctk.set_appearance_mode("dark")
+    logging.basicConfig(filename='myapp.log', level=logging.INFO)
+    logging.info('main started...')
     allLights = [livingRoomLight, dhBedroomLight, bathRoomLight, landingLight, diningRoomLight]
     for light in allLights:
         light.checkCurrentLightsState()
+        #time.sleep(1)
     placeLightControlBtns()
     screenTitle.place(x=180,y=60)
     clockLbl.place(x=0, y=10)
-    time()
+    checkTime()
     weatherLbl.place(x=433, y=10)
     weatherCheck()
     webLbl.place(x=10,y=60)
